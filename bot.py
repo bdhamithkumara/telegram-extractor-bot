@@ -7,7 +7,6 @@ import py7zr
 from pyrogram import Client
 from pyrogram.errors import PeerIdInvalid, UsernameNotOccupied
 
-
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 API_ID = int(os.environ.get("API_ID", 0))
 API_HASH = os.environ.get("API_HASH")
@@ -15,49 +14,6 @@ CHANNEL_RAW = os.environ.get("CHANNEL_ID")
 
 STATE_FILE = "state.json"
 TEMP_DIR = "temp"
-
-
-# ----------------------------
-# CHANNEL HANDLING
-# ----------------------------
-def resolve_channel(value):
-    value = str(value).strip()
-
-    if not value:
-        raise Exception("CHANNEL_ID is empty in GitHub Secrets")
-
-    # Public channel username
-    if value.startswith("@"):
-        return value
-
-    # Numeric ID (private channel)
-    try:
-        return int(value)
-    except:
-        return value
-
-
-CHANNEL_ID = resolve_channel(CHANNEL_RAW)
-
-
-# ----------------------------
-# PYROGRAM CLIENT
-# ----------------------------
-app = Client(
-    "extractor",
-    api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN
-)
-
-
-# ----------------------------
-# DEBUG INFO
-# ----------------------------
-print("🔍 DEBUG INFO")
-print("CHANNEL_RAW:", repr(CHANNEL_RAW))
-print("CHANNEL_ID:", repr(CHANNEL_ID))
-print("TYPE:", type(CHANNEL_ID))
 
 
 # ----------------------------
@@ -73,6 +29,53 @@ def load_state():
 def save_state(state):
     with open(STATE_FILE, "w") as f:
         json.dump(state, f)
+
+
+# ----------------------------
+# CHANNEL RESOLVE (FIXED)
+# ----------------------------
+def resolve_channel(app, value):
+    value = str(value).strip()
+
+    if not value:
+        raise Exception("CHANNEL_ID is empty")
+
+    # numeric ID (-100...)
+    try:
+        if value.lstrip("-").isdigit():
+            return int(value)
+    except:
+        pass
+
+    # username cleanup
+    if value.startswith("https://t.me/"):
+        value = value.replace("https://t.me/", "")
+
+    if value.startswith("@"):
+        value = value[1:]
+
+    # IMPORTANT: force Telegram resolve
+    chat = app.get_chat(value)
+    print(f"✅ Channel resolved: {chat.title} ({chat.id})")
+    return chat.id
+
+
+# ----------------------------
+# PYROGRAM CLIENT
+# ----------------------------
+app = Client(
+    "extractor",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN
+)
+
+
+# ----------------------------
+# DEBUG
+# ----------------------------
+print("🔍 DEBUG INFO")
+print("CHANNEL_RAW:", repr(CHANNEL_RAW))
 
 
 # ----------------------------
@@ -93,29 +96,29 @@ def extract_file(file_path, out_dir):
 
 
 # ----------------------------
-# SAFE HISTORY FETCH (FIXED)
+# SAFE HISTORY (FIXED)
 # ----------------------------
 def safe_history(app, channel):
     try:
         print("📡 Fetching chat history...")
         return app.get_chat_history(channel, limit=50)
 
-    except PeerIdInvalid as e:
-        print("❌ PeerIdInvalid:", e)
-        print("👉 Fix: wrong CHANNEL_ID or bot not in channel")
+    except PeerIdInvalid:
+        print("❌ PeerIdInvalid → Bot has no access to this channel")
+        print("👉 FIX: add bot to channel + make admin")
         return []
 
-    except UsernameNotOccupied as e:
-        print("❌ Username not occupied:", e)
+    except UsernameNotOccupied:
+        print("❌ Username not found")
         return []
 
     except Exception as e:
-        print("❌ Unexpected error fetching history:", e)
+        print("❌ History error:", e)
         return []
 
 
 # ----------------------------
-# MAIN LOGIC
+# MAIN
 # ----------------------------
 def main():
     os.makedirs(TEMP_DIR, exist_ok=True)
@@ -124,10 +127,18 @@ def main():
     last_id = state.get("last_message_id", 0)
 
     with app:
+
+        # 🔥 FIX: resolve channel AFTER login
+        try:
+            CHANNEL_ID = resolve_channel(app, CHANNEL_RAW)
+        except Exception as e:
+            print("❌ Channel resolve failed:", e)
+            return
+
         messages = safe_history(app, CHANNEL_ID)
 
         if not messages:
-            print("⚠️ No messages fetched. Check channel access.")
+            print("⚠️ No messages found (check bot permissions)")
             return
 
         new_last_id = last_id
