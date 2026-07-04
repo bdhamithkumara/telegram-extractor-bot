@@ -4,7 +4,7 @@ import shutil
 import zipfile
 import rarfile
 import py7zr
-from pyrogram import Client
+from pyrogram import Client, filters
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 API_ID = int(os.environ.get("API_ID"))
@@ -16,7 +16,7 @@ TEMP_DIR = "temp"
 
 
 # ----------------------------
-# STATE (avoid reprocessing same file)
+# STATE
 # ----------------------------
 def load_state():
     if os.path.exists(STATE_FILE):
@@ -57,71 +57,61 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
-print("🚀 LATEST ONLY BOT STARTED")
+print("🚀 BOT STARTED (EVENT MODE)")
 
 
 # ----------------------------
-# MAIN
+# ONLY NEW CHANNEL POSTS
 # ----------------------------
-with app:
+@app.on_message(filters.channel)
+def handler(client, message):
 
-    state = load_state()
-    last_id = state.get("last_id", 0)
+    try:
+        state = load_state()
+        last_id = state.get("last_id", 0)
 
-    print("📡 Checking latest message only...")
+        if message.id <= last_id:
+            return
 
-    # ONLY ONE MESSAGE (NO HISTORY API)
-    messages = app.get_chat_history(CHANNEL_ID, limit=1)
+        if not message.document:
+            return
 
-    msg = next(messages, None)
+        file_name = message.document.file_name or ""
 
-    if not msg:
-        print("⚠️ No messages found")
-        exit()
+        if not file_name.endswith((".zip", ".rar", ".7z")):
+            return
 
-    # Skip if already processed
-    if msg.id <= last_id:
-        print("✅ No new messages")
-        exit()
+        print(f"📦 New file: {file_name}")
 
-    if not msg.document:
-        print("⚠️ Latest message is not a file")
-        exit()
+        os.makedirs(TEMP_DIR, exist_ok=True)
 
-    file_name = msg.document.file_name or ""
+        file_path = client.download_media(
+            message,
+            file_name=f"{TEMP_DIR}/{file_name}"
+        )
 
-    if not file_name.endswith((".zip", ".rar", ".7z")):
-        print("⚠️ Not an archive file")
-        exit()
+        out_dir = f"{TEMP_DIR}/out_{message.id}"
+        os.makedirs(out_dir, exist_ok=True)
 
-    print(f"📦 Processing latest file: {file_name}")
+        extract_file(file_path, out_dir)
 
-    os.makedirs(TEMP_DIR, exist_ok=True)
+        for root, _, files in os.walk(out_dir):
+            for f in files:
+                full = os.path.join(root, f)
+                client.send_document(message.chat.id, full)
 
-    file_path = app.download_media(
-        msg,
-        file_name=f"{TEMP_DIR}/{file_name}"
-    )
+        state["last_id"] = message.id
+        save_state(state)
 
-    out_dir = f"{TEMP_DIR}/out"
-    os.makedirs(out_dir, exist_ok=True)
+        shutil.rmtree(TEMP_DIR, ignore_errors=True)
 
-    print("📂 Extracting...")
+        print("✅ DONE")
 
-    extract_file(file_path, out_dir)
+    except Exception as e:
+        print("⚠️ Error:", e)
 
-    print("📤 Sending extracted files...")
 
-    for root, _, files in os.walk(out_dir):
-        for f in files:
-            full = os.path.join(root, f)
-            app.send_document(CHANNEL_ID, full)
-
-    print("✅ DONE")
-
-    state["last_id"] = msg.id
-    save_state(state)
-
-    shutil.rmtree(TEMP_DIR, ignore_errors=True)
-
-print("🏁 Finished cleanly")
+# ----------------------------
+# RUN
+# ----------------------------
+app.run()
