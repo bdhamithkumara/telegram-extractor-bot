@@ -18,7 +18,7 @@ TEMP_DIR = "temp"
 
 
 # ----------------------------
-# SAFE CHANNEL HANDLING
+# CHANNEL HANDLING
 # ----------------------------
 def resolve_channel(value):
     value = str(value).strip()
@@ -26,11 +26,11 @@ def resolve_channel(value):
     if not value:
         raise Exception("CHANNEL_ID is empty in GitHub Secrets")
 
-    # username format
+    # Public channel username
     if value.startswith("@"):
         return value
 
-    # numeric ID
+    # Numeric ID (private channel)
     try:
         return int(value)
     except:
@@ -40,6 +40,9 @@ def resolve_channel(value):
 CHANNEL_ID = resolve_channel(CHANNEL_RAW)
 
 
+# ----------------------------
+# PYROGRAM CLIENT
+# ----------------------------
 app = Client(
     "extractor",
     api_id=API_ID,
@@ -49,7 +52,7 @@ app = Client(
 
 
 # ----------------------------
-# DEBUG (IMPORTANT FOR YOU)
+# DEBUG INFO
 # ----------------------------
 print("🔍 DEBUG INFO")
 print("CHANNEL_RAW:", repr(CHANNEL_RAW))
@@ -57,6 +60,9 @@ print("CHANNEL_ID:", repr(CHANNEL_ID))
 print("TYPE:", type(CHANNEL_ID))
 
 
+# ----------------------------
+# STATE
+# ----------------------------
 def load_state():
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, "r") as f:
@@ -69,6 +75,9 @@ def save_state(state):
         json.dump(state, f)
 
 
+# ----------------------------
+# EXTRACT FILES
+# ----------------------------
 def extract_file(file_path, out_dir):
     if file_path.endswith(".zip"):
         with zipfile.ZipFile(file_path, 'r') as z:
@@ -88,19 +97,26 @@ def extract_file(file_path, out_dir):
 # ----------------------------
 def safe_history(app, channel):
     try:
-        # IMPORTANT FIX: resolve chat first
-        chat = app.get_chat(channel)
-        return app.get_chat_history(chat.id, limit=50)
+        print("📡 Fetching chat history...")
+        return app.get_chat_history(channel, limit=50)
 
-    except (PeerIdInvalid, UsernameNotOccupied) as e:
-        print("❌ Telegram peer error:", e)
+    except PeerIdInvalid as e:
+        print("❌ PeerIdInvalid:", e)
+        print("👉 Fix: wrong CHANNEL_ID or bot not in channel")
+        return []
+
+    except UsernameNotOccupied as e:
+        print("❌ Username not occupied:", e)
         return []
 
     except Exception as e:
-        print("❌ Failed to fetch history:", e)
+        print("❌ Unexpected error fetching history:", e)
         return []
 
 
+# ----------------------------
+# MAIN LOGIC
+# ----------------------------
 def main():
     os.makedirs(TEMP_DIR, exist_ok=True)
 
@@ -108,8 +124,11 @@ def main():
     last_id = state.get("last_message_id", 0)
 
     with app:
-
         messages = safe_history(app, CHANNEL_ID)
+
+        if not messages:
+            print("⚠️ No messages fetched. Check channel access.")
+            return
 
         new_last_id = last_id
 
@@ -157,7 +176,6 @@ def main():
 
             except Exception as e:
                 print(f"⚠️ Skipping message {msg.id}: {e}")
-                continue
 
     state["last_message_id"] = new_last_id
     save_state(state)
