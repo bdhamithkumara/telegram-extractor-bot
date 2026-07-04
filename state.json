@@ -1,27 +1,6 @@
 {
   "update_offset": 118588617,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAMfakjB7_NaYQgvQnabGOWmpthENrUAAqEmAALmtEhWODa2ugc-TfM8BA",
-      "file_unique_id": "AgADoSYAAua0SFY",
-      "file_name": "qygl_MmsDose.org_PicsCG (1).zip",
-      "file_size": 5920092,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-07-04T10:30:24.424505+00:00"
-    },
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAMgakjB7_OzVE_IVbwvi6RKRiCYNccAAqImAALmtEhWQnZeWBs4D808BA",
-      "file_unique_id": "AgADoiYAAua0SFY",
-      "file_name": "pamx_MmsDose__SlbutyQueenP (1).zip",
-      "file_size": 5227273,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-07-04T10:30:24.940606+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
