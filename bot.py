@@ -9,7 +9,7 @@ from pyrogram import Client
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 API_ID = int(os.environ["API_ID"])
 API_HASH = os.environ["API_HASH"]
-CHANNEL_ID = int(os.environ["CHANNEL_ID"])
+CHANNEL_ID = os.environ["CHANNEL_ID"]
 
 STATE_FILE = "state.json"
 TEMP_DIR = "temp"
