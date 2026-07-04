@@ -4,6 +4,7 @@ import zipfile
 import shutil
 import logging
 import asyncio
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import rarfile
@@ -35,32 +36,95 @@ ARCHIVE_EXTS = {".zip", ".rar"}
 # Telegram single-file upload limit (2 GB via MTProto)
 MAX_FILE_BYTES = 2 * 1024 * 1024 * 1024
 
+# ── Rate-limit config (tune via GitHub secrets / env vars) ─────────────────────
+# Max archive size to accept — files larger than this are rejected immediately
+# (no download = no runner minutes wasted). Default: 200 MB
+MAX_ARCHIVE_MB  = int(os.environ.get("MAX_ARCHIVE_MB", 200))
+MAX_ARCHIVE_BYTES = MAX_ARCHIVE_MB * 1024 * 1024
+
+# Max archives processed per hour across ALL users. Default: 5
+MAX_PER_HOUR = int(os.environ.get("MAX_PER_HOUR", 5))
+
+# Max archives processed per calendar day (UTC). Default: 20
+MAX_PER_DAY  = int(os.environ.get("MAX_PER_DAY", 20))
+
 
 # ── State helpers ──────────────────────────────────────────────────────────────
+DEFAULTS = {"processed": [], "hourly_log": [], "daily_log": {}}
+
+
 def load_state() -> dict:
+    state = {}
     if STATE_FILE.exists():
         try:
-            return json.loads(STATE_FILE.read_text())
-        except json.JSONDecodeError:
+            state = json.loads(STATE_FILE.read_text())
+        except (json.JSONDecodeError, ValueError):
             pass
-    return {"processed": []}
+    # Always merge with defaults — missing keys never cause KeyError
+    return {**DEFAULTS, **state}
 
 
 def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=2))
 
 
+def already_processed(msg_id: int) -> bool:
+    return msg_id in load_state().get("processed", [])
+
+
 def mark_processed(msg_id: int) -> None:
     state = load_state()
+    now   = datetime.utcnow()
+
+    # record processed ID
     if msg_id not in state["processed"]:
         state["processed"].append(msg_id)
-        # Keep only the last 1000 IDs to avoid unbounded growth
         state["processed"] = state["processed"][-1000:]
-        save_state(state)
+
+    # record timestamp for rate-limiting
+    state.setdefault("hourly_log", [])
+    state["hourly_log"].append(now.isoformat())
+
+    state.setdefault("daily_log", {})
+    day_key = now.strftime("%Y-%m-%d")
+    state["daily_log"][day_key] = state["daily_log"].get(day_key, 0) + 1
+
+    # prune old daily_log entries (keep last 7 days)
+    cutoff = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+    state["daily_log"] = {k: v for k, v in state["daily_log"].items() if k >= cutoff}
+
+    save_state(state)
 
 
-def already_processed(msg_id: int) -> bool:
-    return msg_id in load_state()["processed"]
+def check_rate_limits() -> tuple[bool, str]:
+    """
+    Returns (allowed, reason).
+    - allowed=True  → proceed
+    - allowed=False → reason contains a human-readable message for the channel
+    """
+    state = load_state()
+    now   = datetime.utcnow()
+
+    # ── Hourly check ────────────────────────────────────────────────────────────
+    one_hour_ago = (now - timedelta(hours=1)).isoformat()
+    recent = [t for t in state.get("hourly_log", []) if t >= one_hour_ago]
+    if len(recent) >= MAX_PER_HOUR:
+        reset_in = 60 - now.minute
+        return False, (
+            f"⏱ Hourly limit reached ({MAX_PER_HOUR} archives/hour).\n"
+            f"Next slot resets in ~{reset_in} minute(s)."
+        )
+
+    # ── Daily check ─────────────────────────────────────────────────────────────
+    day_key   = now.strftime("%Y-%m-%d")
+    day_count = state.get("daily_log", {}).get(day_key, 0)
+    if day_count >= MAX_PER_DAY:
+        return False, (
+            f"📅 Daily limit reached ({MAX_PER_DAY} archives/day).\n"
+            f"Resets at midnight UTC."
+        )
+
+    return True, ""
 
 
 # ── Extraction helpers ─────────────────────────────────────────────────────────
@@ -110,6 +174,25 @@ async def handle_archive(client: Client, message: Message) -> None:
 
     original_name = doc.file_name
     file_size     = doc.file_size or 0
+
+    # ── Guard 1: file size cap (checked before any download) ──────────────────
+    if file_size > MAX_ARCHIVE_BYTES:
+        await client.send_message(
+            CHANNEL_ID,
+            f"🚫 **Skipped** `{original_name}`\n"
+            f"Size {human_size(file_size)} exceeds the {MAX_ARCHIVE_MB} MB limit.\n"
+            f"Upload a smaller archive or raise `MAX_ARCHIVE_MB` in secrets.",
+        )
+        logger.warning(f"Rejected {original_name} — {human_size(file_size)} > {MAX_ARCHIVE_MB} MB")
+        return
+
+    # ── Guard 2 & 3: hourly / daily rate limits ────────────────────────────────
+    allowed, reason = check_rate_limits()
+    if not allowed:
+        await client.send_message(CHANNEL_ID, f"🚫 **Skipped** `{original_name}`\n{reason}")
+        logger.warning(f"Rate-limited: {original_name} — {reason}")
+        return
+
     logger.info(f"New archive: {original_name} ({human_size(file_size)})")
 
     download_path = TEMP_DIR / f"{message.id}_{original_name}"
