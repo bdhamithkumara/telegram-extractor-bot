@@ -1,37 +1,29 @@
 import os
-import json
 import shutil
 import zipfile
 import rarfile
 import py7zr
-from pyrogram import Client, filters
+from pyrogram import Client
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-API_ID = int(os.environ.get("API_ID", 0))
+API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
 
-STATE_FILE = "state.json"
 TEMP_DIR = "temp"
 
+app = Client(
+    "extractor",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN
+)
 
-# ----------------------------
-# STATE
-# ----------------------------
-def load_state():
-    if os.path.exists(STATE_FILE):
-        with open(STATE_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-
-def save_state(state):
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f)
+print("🚀 TEST MODE STARTED")
 
 
 # ----------------------------
-# EXTRACT FILES
+# EXTRACT FUNCTION
 # ----------------------------
 def extract_file(file_path, out_dir):
     if file_path.endswith(".zip"):
@@ -48,70 +40,50 @@ def extract_file(file_path, out_dir):
 
 
 # ----------------------------
-# PYROGRAM CLIENT
+# MAIN TEST FLOW
 # ----------------------------
-app = Client(
-    "extractor",
-    api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN
-)
+with app:
 
+    print("📡 Fetching latest messages...")
 
-print("🚀 Bot started (LIVE MODE)")
-print("📡 Listening for new messages...")
+    messages = app.get_chat_history(CHANNEL_ID, limit=10)
 
+    target_msg = None
 
-# ----------------------------
-# HANDLER (NEW MESSAGES ONLY)
-# ----------------------------
-@app.on_message(filters.channel)
-def handle_channel_posts(client, message):
+    for msg in messages:
+        if msg.document:
+            file_name = msg.document.file_name or ""
+            if file_name.endswith((".zip", ".rar", ".7z")):
+                target_msg = msg
+                break
 
-    try:
-        if not message.document:
-            return
+    if not target_msg:
+        print("❌ No archive found in last 10 messages")
+        exit()
 
-        file_name = message.document.file_name or ""
+    print(f"📦 Found file: {target_msg.document.file_name}")
 
-        if not file_name.endswith((".zip", ".rar", ".7z")):
-            return
+    os.makedirs(TEMP_DIR, exist_ok=True)
 
-        print(f"📦 New file received: {file_name}")
+    file_path = app.download_media(
+        target_msg,
+        file_name=f"{TEMP_DIR}/{target_msg.document.file_name}"
+    )
 
-        os.makedirs(TEMP_DIR, exist_ok=True)
+    out_dir = f"{TEMP_DIR}/out"
+    os.makedirs(out_dir, exist_ok=True)
 
-        file_path = client.download_media(
-            message,
-            file_name=f"{TEMP_DIR}/{file_name}"
-        )
+    print("📂 Extracting...")
 
-        out_dir = f"{TEMP_DIR}/out_{message.id}"
-        os.makedirs(out_dir, exist_ok=True)
+    extract_file(file_path, out_dir)
 
-        try:
-            extract_file(file_path, out_dir)
+    print("📤 Sending extracted files...")
 
-            for root, _, files in os.walk(out_dir):
-                for f in files:
-                    full = os.path.join(root, f)
-                    client.send_document(message.chat.id, full)
+    for root, _, files in os.walk(out_dir):
+        for f in files:
+            full = os.path.join(root, f)
+            app.send_document(CHANNEL_ID, full)
 
-            print(f"✅ Done: {file_name}")
+    print("✅ TEST COMPLETE")
 
-        except Exception as e:
-            client.send_message(
-                message.chat.id,
-                f"❌ Extract failed: {file_name}\n{e}"
-            )
-
-        shutil.rmtree(TEMP_DIR, ignore_errors=True)
-
-    except Exception as e:
-        print(f"⚠️ Error processing message: {e}")
-
-
-# ----------------------------
-# RUN
-# ----------------------------
-app.run()
+    shutil.rmtree(TEMP_DIR, ignore_errors=True)
