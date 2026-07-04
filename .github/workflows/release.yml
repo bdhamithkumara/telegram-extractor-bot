@@ -36,8 +36,6 @@ jobs:
           API_HASH:        ${{ secrets.API_HASH }}
           BOT_TOKEN:       ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID:      ${{ secrets.CHANNEL_ID }}
-          MAX_ARCHIVE_MB:  ${{ secrets.MAX_ARCHIVE_MB }}   # default 200
-
         run: python release.py
 
       - name: Save state to repo

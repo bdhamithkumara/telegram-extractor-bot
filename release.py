@@ -33,7 +33,7 @@ TEMP_DIR        = Path("temp")
 STATE_FILE      = Path("state.json")
 TEMP_DIR.mkdir(exist_ok=True)
 
-MAX_ARCHIVE_MB    = int(os.environ.get("MAX_ARCHIVE_MB", 200))
+MAX_ARCHIVE_MB    = int(os.environ.get("MAX_ARCHIVE_MB") or 200)
 MAX_ARCHIVE_BYTES = MAX_ARCHIVE_MB * 1024 * 1024
 MAX_FILE_BYTES    = 2 * 1024 * 1024 * 1024   # 2 GB Telegram upload cap
 DEFAULTS          = {"update_offset": 0, "queue": [], "processed": []}
