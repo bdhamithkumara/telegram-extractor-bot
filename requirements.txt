@@ -1,4 +1,3 @@
-pyrogram
+pyrogram==2.0.106
 tgcrypto
-rarfile
-py7zr
+rarfile==4.1
