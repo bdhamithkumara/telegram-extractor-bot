@@ -1,1 +1,6 @@
-{"last_message_id": 0}
+{
+  "update_offset": 0,
+  "queue": [],
+  "processed": [],
+  "last_message_id": 0
+}
