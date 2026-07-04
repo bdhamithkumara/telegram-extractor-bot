@@ -5,11 +5,13 @@ import zipfile
 import rarfile
 import py7zr
 from pyrogram import Client
+from pyrogram.errors import PeerIdInvalid, UsernameNotOccupied
 
-BOT_TOKEN = os.environ["BOT_TOKEN"]
-API_ID = int(os.environ["API_ID"])
-API_HASH = os.environ["API_HASH"]
-CHANNEL_RAW = os.environ["CHANNEL_ID"]
+
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+API_ID = int(os.environ.get("API_ID", 0))
+API_HASH = os.environ.get("API_HASH")
+CHANNEL_RAW = os.environ.get("CHANNEL_ID")
 
 STATE_FILE = "state.json"
 TEMP_DIR = "temp"
@@ -21,9 +23,14 @@ TEMP_DIR = "temp"
 def resolve_channel(value):
     value = str(value).strip()
 
+    if not value:
+        raise Exception("CHANNEL_ID is empty in GitHub Secrets")
+
+    # username format
     if value.startswith("@"):
         return value
 
+    # numeric ID
     try:
         return int(value)
     except:
@@ -39,6 +46,15 @@ app = Client(
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
 )
+
+
+# ----------------------------
+# DEBUG (IMPORTANT FOR YOU)
+# ----------------------------
+print("🔍 DEBUG INFO")
+print("CHANNEL_RAW:", repr(CHANNEL_RAW))
+print("CHANNEL_ID:", repr(CHANNEL_ID))
+print("TYPE:", type(CHANNEL_ID))
 
 
 def load_state():
@@ -67,9 +83,19 @@ def extract_file(file_path, out_dir):
             z.extractall(path=out_dir)
 
 
+# ----------------------------
+# SAFE HISTORY FETCH (FIXED)
+# ----------------------------
 def safe_history(app, channel):
     try:
-        return app.get_chat_history(channel, limit=50)
+        # IMPORTANT FIX: resolve chat first
+        chat = app.get_chat(channel)
+        return app.get_chat_history(chat.id, limit=50)
+
+    except (PeerIdInvalid, UsernameNotOccupied) as e:
+        print("❌ Telegram peer error:", e)
+        return []
+
     except Exception as e:
         print("❌ Failed to fetch history:", e)
         return []
@@ -93,15 +119,12 @@ def main():
                 if msg.id <= last_id:
                     continue
 
-                # update tracker
                 new_last_id = max(new_last_id, msg.id)
 
                 if not msg.document:
                     continue
 
                 file_name = msg.document.file_name or ""
-                if not file_name:
-                    continue
 
                 if not file_name.endswith((".zip", ".rar", ".7z")):
                     continue
@@ -136,7 +159,6 @@ def main():
                 print(f"⚠️ Skipping message {msg.id}: {e}")
                 continue
 
-    # save progress
     state["last_message_id"] = new_last_id
     save_state(state)
 
