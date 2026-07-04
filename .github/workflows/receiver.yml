@@ -1,0 +1,39 @@
+name: Queue Receiver
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'   # every 30 min — checks bot DMs for new archives
+
+permissions:
+  contents: write             # needed to commit state.json back to repo
+
+jobs:
+  receive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5        # receiver is lightweight — should finish in <1 min
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install --no-cache-dir requests
+
+      - name: Check for new archives
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: python receive.py
+
+      - name: Save state to repo
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          git diff --staged --quiet || git commit -m "chore: update queue state [skip ci]"
+          git push

@@ -1,3 +1,4 @@
 pyrogram==2.0.106
 tgcrypto
 rarfile==4.1
+requests

@@ -1,0 +1,49 @@
+name: Daily Release
+
+on:
+  workflow_dispatch:          # manual trigger if needed
+  schedule:
+    - cron: '0 12 * * *'     # every day at noon UTC — change to your preferred time
+
+permissions:
+  contents: write             # needed to commit state.json back to repo
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60       # generous ceiling for large archives
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y unrar || sudo apt-get install -y p7zip-full
+
+      - name: Install Python dependencies
+        run: pip install --no-cache-dir pyrogram tgcrypto rarfile
+
+      - name: Run daily release
+        env:
+          API_ID:          ${{ secrets.API_ID }}
+          API_HASH:        ${{ secrets.API_HASH }}
+          BOT_TOKEN:       ${{ secrets.BOT_TOKEN }}
+          CHANNEL_ID:      ${{ secrets.CHANNEL_ID }}
+          MAX_ARCHIVE_MB:  ${{ secrets.MAX_ARCHIVE_MB }}   # default 200
+
+        run: python release.py
+
+      - name: Save state to repo
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          git diff --staged --quiet || git commit -m "chore: clear released queue [skip ci]"
+          git push
