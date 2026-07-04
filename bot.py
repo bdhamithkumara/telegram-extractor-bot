@@ -16,7 +16,7 @@ TEMP_DIR = "temp"
 
 
 # ----------------------------
-# STATE (prevent duplicates)
+# STATE (avoid reprocessing same file)
 # ----------------------------
 def load_state():
     if os.path.exists(STATE_FILE):
@@ -57,68 +57,69 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
-print("🚀 Bot started (BATCH MODE)")
+print("🚀 LATEST ONLY BOT STARTED")
 
 
 # ----------------------------
-# MAIN LOGIC
+# MAIN
 # ----------------------------
 with app:
 
     state = load_state()
     last_id = state.get("last_id", 0)
 
-    print("📡 Fetching recent messages...")
+    print("📡 Checking latest message only...")
 
-    messages = app.get_chat_history(CHANNEL_ID, limit=30)
+    # ONLY ONE MESSAGE (NO HISTORY API)
+    messages = app.get_chat_history(CHANNEL_ID, limit=1)
 
-    new_last_id = last_id
+    msg = next(messages, None)
 
-    for msg in reversed(list(messages)):
+    if not msg:
+        print("⚠️ No messages found")
+        exit()
 
-        try:
-            if msg.id <= last_id:
-                continue
+    # Skip if already processed
+    if msg.id <= last_id:
+        print("✅ No new messages")
+        exit()
 
-            new_last_id = max(new_last_id, msg.id)
+    if not msg.document:
+        print("⚠️ Latest message is not a file")
+        exit()
 
-            if not msg.document:
-                continue
+    file_name = msg.document.file_name or ""
 
-            file_name = msg.document.file_name or ""
+    if not file_name.endswith((".zip", ".rar", ".7z")):
+        print("⚠️ Not an archive file")
+        exit()
 
-            if not file_name.endswith((".zip", ".rar", ".7z")):
-                continue
+    print(f"📦 Processing latest file: {file_name}")
 
-            print(f"📦 Found: {file_name}")
+    os.makedirs(TEMP_DIR, exist_ok=True)
 
-            os.makedirs(TEMP_DIR, exist_ok=True)
+    file_path = app.download_media(
+        msg,
+        file_name=f"{TEMP_DIR}/{file_name}"
+    )
 
-            file_path = app.download_media(
-                msg,
-                file_name=f"{TEMP_DIR}/{file_name}"
-            )
+    out_dir = f"{TEMP_DIR}/out"
+    os.makedirs(out_dir, exist_ok=True)
 
-            out_dir = f"{TEMP_DIR}/out_{msg.id}"
-            os.makedirs(out_dir, exist_ok=True)
+    print("📂 Extracting...")
 
-            print("📂 Extracting...")
+    extract_file(file_path, out_dir)
 
-            extract_file(file_path, out_dir)
+    print("📤 Sending extracted files...")
 
-            print("📤 Sending files...")
+    for root, _, files in os.walk(out_dir):
+        for f in files:
+            full = os.path.join(root, f)
+            app.send_document(CHANNEL_ID, full)
 
-            for root, _, files in os.walk(out_dir):
-                for f in files:
-                    full = os.path.join(root, f)
-                    app.send_document(CHANNEL_ID, full)
+    print("✅ DONE")
 
-            print(f"✅ Done: {file_name}")
-
-        except Exception as e:
-            print(f"⚠️ Error: {e}")
-
-    state["last_id"] = new_last_id
+    state["last_id"] = msg.id
     save_state(state)
 
     shutil.rmtree(TEMP_DIR, ignore_errors=True)
