@@ -1,4 +1,5 @@
 import os
+import json
 import shutil
 import zipfile
 import rarfile
@@ -10,20 +11,27 @@ API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
 
+STATE_FILE = "state.json"
 TEMP_DIR = "temp"
-
-app = Client(
-    "extractor",
-    api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN
-)
-
-print("🚀 TEST MODE STARTED")
 
 
 # ----------------------------
-# EXTRACT FUNCTION
+# STATE (prevent duplicates)
+# ----------------------------
+def load_state():
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r") as f:
+            return json.load(f)
+    return {"last_id": 0}
+
+
+def save_state(state):
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f)
+
+
+# ----------------------------
+# EXTRACT
 # ----------------------------
 def extract_file(file_path, out_dir):
     if file_path.endswith(".zip"):
@@ -40,50 +48,79 @@ def extract_file(file_path, out_dir):
 
 
 # ----------------------------
-# MAIN TEST FLOW
+# CLIENT
+# ----------------------------
+app = Client(
+    "extractor",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN
+)
+
+print("🚀 Bot started (BATCH MODE)")
+
+
+# ----------------------------
+# MAIN LOGIC
 # ----------------------------
 with app:
 
-    print("📡 Fetching latest messages...")
+    state = load_state()
+    last_id = state.get("last_id", 0)
 
-    messages = app.get_chat_history(CHANNEL_ID, limit=10)
+    print("📡 Fetching recent messages...")
 
-    target_msg = None
+    messages = app.get_chat_history(CHANNEL_ID, limit=30)
 
-    for msg in messages:
-        if msg.document:
+    new_last_id = last_id
+
+    for msg in reversed(list(messages)):
+
+        try:
+            if msg.id <= last_id:
+                continue
+
+            new_last_id = max(new_last_id, msg.id)
+
+            if not msg.document:
+                continue
+
             file_name = msg.document.file_name or ""
-            if file_name.endswith((".zip", ".rar", ".7z")):
-                target_msg = msg
-                break
 
-    if not target_msg:
-        print("❌ No archive found in last 10 messages")
-        exit()
+            if not file_name.endswith((".zip", ".rar", ".7z")):
+                continue
 
-    print(f"📦 Found file: {target_msg.document.file_name}")
+            print(f"📦 Found: {file_name}")
 
-    os.makedirs(TEMP_DIR, exist_ok=True)
+            os.makedirs(TEMP_DIR, exist_ok=True)
 
-    file_path = app.download_media(
-        target_msg,
-        file_name=f"{TEMP_DIR}/{target_msg.document.file_name}"
-    )
+            file_path = app.download_media(
+                msg,
+                file_name=f"{TEMP_DIR}/{file_name}"
+            )
 
-    out_dir = f"{TEMP_DIR}/out"
-    os.makedirs(out_dir, exist_ok=True)
+            out_dir = f"{TEMP_DIR}/out_{msg.id}"
+            os.makedirs(out_dir, exist_ok=True)
 
-    print("📂 Extracting...")
+            print("📂 Extracting...")
 
-    extract_file(file_path, out_dir)
+            extract_file(file_path, out_dir)
 
-    print("📤 Sending extracted files...")
+            print("📤 Sending files...")
 
-    for root, _, files in os.walk(out_dir):
-        for f in files:
-            full = os.path.join(root, f)
-            app.send_document(CHANNEL_ID, full)
+            for root, _, files in os.walk(out_dir):
+                for f in files:
+                    full = os.path.join(root, f)
+                    app.send_document(CHANNEL_ID, full)
 
-    print("✅ TEST COMPLETE")
+            print(f"✅ Done: {file_name}")
+
+        except Exception as e:
+            print(f"⚠️ Error: {e}")
+
+    state["last_id"] = new_last_id
+    save_state(state)
 
     shutil.rmtree(TEMP_DIR, ignore_errors=True)
+
+print("🏁 Finished cleanly")
