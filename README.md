@@ -1,6 +1,6 @@
 # 📦 Telegram Archive Extractor Bot
 
-A Telegram bot that lets users DM `.zip` or `.rar` files directly to the bot. All received archives are queued and released together to a private channel once a day — fully automated via GitHub Actions, no server needed.
+A Telegram bot that lets users DM `.zip` or `.rar` files directly to the bot. All received archives are queued and released together to a private channel once a day - fully automated via GitHub Actions, no server needed.
 
 ---
 
