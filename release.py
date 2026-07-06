@@ -16,6 +16,7 @@ from pathlib import Path
 import rarfile
 from pyrogram import Client
 from pyrogram.errors import FloodWait
+from pyrogram.types import InputMediaPhoto, InputMediaVideo
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +38,18 @@ MAX_ARCHIVE_MB    = int(os.environ.get("MAX_ARCHIVE_MB") or 200)
 MAX_ARCHIVE_BYTES = MAX_ARCHIVE_MB * 1024 * 1024
 MAX_FILE_BYTES    = 2 * 1024 * 1024 * 1024   # 2 GB Telegram upload cap
 DEFAULTS          = {"update_offset": 0, "queue": [], "processed": []}
+
+MAX_MEDIA_GROUP = 10   # Telegram's hard cap per album post
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+VIDEO_EXTS = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"}
+
+def media_kind(path: Path) -> str | None:
+    ext = path.suffix.lower()
+    if ext in IMAGE_EXTS:
+        return "photo"
+    if ext in VIDEO_EXTS:
+        return "video"
+    return None
 
 
 # ── State ──────────────────────────────────────────────────────────────────────
@@ -94,6 +107,29 @@ async def upload_file(client: Client, file_path: Path, caption: str) -> bool:
                 return False
             await asyncio.sleep(2 ** attempt)
     return False
+
+
+# ── Upload a batch of photos/videos as a single album post ────────────────────
+async def upload_media_group(client: Client, batch: list[dict]) -> tuple[int, int]:
+    media = [
+        (InputMediaPhoto if item["kind"] == "photo" else InputMediaVideo)(
+            media=str(item["path"]), caption=item["caption"]
+        )
+        for item in batch
+    ]
+    for attempt in range(3):
+        try:
+            await client.send_media_group(CHANNEL_ID, media)
+            return len(batch), 0
+        except FloodWait as fw:
+            logger.warning(f"FloodWait {fw.value}s (media group)…")
+            await asyncio.sleep(fw.value)
+        except Exception as exc:
+            if attempt == 2:
+                logger.error(f"Media group upload failed ({len(batch)} files): {exc}")
+                return 0, len(batch)
+            await asyncio.sleep(2 ** attempt)
+    return 0, len(batch)
 
 
 # ── Notify submitter via DM ────────────────────────────────────────────────────
@@ -168,13 +204,26 @@ async def process_item(client: Client, item: dict, index: int, total: int) -> bo
             f"📄 {file_count} file(s) inside",
         )
 
-        # Upload each file
+        # Upload each file — consecutive images/videos are grouped into album
+        # posts (max 10 per Telegram album); everything else is sent as before.
         uploaded, failed = 0, 0
+        media_batch: list[dict] = []
+
+        async def flush_media_batch():
+            nonlocal uploaded, failed, media_batch
+            if not media_batch:
+                return
+            ok_count, fail_count = await upload_media_group(client, media_batch)
+            uploaded += ok_count
+            failed += fail_count
+            media_batch = []
+
         for idx, file_path in enumerate(files, start=1):
             relative = file_path.relative_to(extract_dir)
             size     = file_path.stat().st_size
 
             if size > MAX_FILE_BYTES:
+                await flush_media_batch()
                 await client.send_message(
                     CHANNEL_ID, f"⏭ Skipped `{relative}` — exceeds 2 GB Telegram limit"
                 )
@@ -186,11 +235,21 @@ async def process_item(client: Client, item: dict, index: int, total: int) -> bo
                 f"📦 From: `{file_name}`  •  {idx}/{file_count}\n"
                 f"👤 @{from_user}"
             )
-            ok = await upload_file(client, file_path, caption)
-            if ok:
-                uploaded += 1
+
+            kind = media_kind(file_path)
+            if kind:
+                media_batch.append({"path": file_path, "kind": kind, "caption": caption})
+                if len(media_batch) == MAX_MEDIA_GROUP:
+                    await flush_media_batch()
             else:
-                failed += 1
+                await flush_media_batch()
+                ok = await upload_file(client, file_path, caption)
+                if ok:
+                    uploaded += 1
+                else:
+                    failed += 1
+
+        await flush_media_batch()
 
         # Summary in channel
         await client.send_message(
