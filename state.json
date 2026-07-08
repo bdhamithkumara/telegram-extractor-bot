@@ -1,17 +1,6 @@
 {
   "update_offset": 118588622,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIDkGpNAZzRIg0KfO8nmnhffC2KWe6yAAIjJAAC-qJBVkdxz6grHiPtPAQ",
-      "file_unique_id": "AgADIyQAAvqiQVY",
-      "file_name": "ndrg_MmsDose__MalasianSinger (1).zip",
-      "file_size": 98631786,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-07-07T16:18:27.227614+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
