@@ -24,6 +24,16 @@ STATE_FILE = Path("state.json")
 ARCHIVE_EXTS = {".zip", ".rar"}
 DEFAULTS   = {"update_offset": 0, "queue": [], "processed": []}
 
+MAX_ARCHIVE_MB    = int(os.environ.get("MAX_ARCHIVE_MB") or 200)
+MAX_ARCHIVE_BYTES = MAX_ARCHIVE_MB * 1024 * 1024
+
+def human_size(b: int) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if b < 1024:
+            return f"{b:.1f} {unit}"
+        b /= 1024
+    return f"{b:.1f} TB"
+
 
 # ── State ──────────────────────────────────────────────────────────────────────
 def load_state() -> dict:
@@ -92,6 +102,18 @@ def main() -> None:
         from_info      = message.get("from", {})
         from_user      = from_info.get("username") or from_info.get("first_name", "unknown")
         from_user_id   = from_info.get("id")
+
+        # Reject oversized archives up front — they'd never make it through
+        # the daily release anyway, so don't queue something that can't run.
+        if file_size > MAX_ARCHIVE_BYTES:
+            send_message(
+                chat_id,
+                f"🚫 `{file_name}` ({human_size(file_size)}) exceeds the "
+                f"{MAX_ARCHIVE_MB} MB limit and was *not* queued.\n"
+                f"Please split it into smaller archives and re-upload.",
+            )
+            logger.info(f"Rejected (too large): {file_name} ({human_size(file_size)})")
+            continue
 
         # Deduplicate by file_unique_id
         existing = [q["file_unique_id"] for q in state["queue"]]

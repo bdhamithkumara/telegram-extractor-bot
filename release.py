@@ -39,7 +39,8 @@ MAX_ARCHIVE_BYTES = MAX_ARCHIVE_MB * 1024 * 1024
 MAX_FILE_BYTES    = 2 * 1024 * 1024 * 1024   # 2 GB Telegram upload cap
 DEFAULTS          = {"update_offset": 0, "queue": [], "processed": []}
 
-MAX_MEDIA_GROUP = 10   # Telegram's hard cap per album post
+MAX_RETRY_ATTEMPTS = 3   # give up on an item after this many transient failures
+MAX_MEDIA_GROUP    = 10  # Telegram's hard cap per album post
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 VIDEO_EXTS = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v"}
 
@@ -156,7 +157,9 @@ async def notify_user(client: Client, item: dict, success: bool, detail: str = "
 
 
 # ── Process one queued item ────────────────────────────────────────────────────
-async def process_item(client: Client, item: dict, index: int, total: int) -> bool:
+# Returns "success", "permanent" (unrecoverable — drop from queue), or
+# "retry" (transient failure — keep in queue for the next run).
+async def process_item(client: Client, item: dict, index: int, total: int) -> str:
     file_name  = item["file_name"]
     file_id    = item["file_id"]
     file_size  = item.get("file_size", 0)
@@ -165,15 +168,16 @@ async def process_item(client: Client, item: dict, index: int, total: int) -> bo
 
     logger.info(f"[{index}/{total}] Processing: {file_name} from @{from_user}")
 
-    # Size guard
+    # Size guard — this will never pass on a retry, so drop it for good.
     if file_size > MAX_ARCHIVE_BYTES:
         reason = f"Size {human_size(file_size)} exceeds {MAX_ARCHIVE_MB} MB limit"
         await client.send_message(
             CHANNEL_ID,
-            f"🚫 **Skipped** `{file_name}` (from @{from_user})\n{reason}",
+            f"🚫 **Skipped** `{file_name}` (from @{from_user})\n{reason}\n"
+            f"This won't be retried — please re-upload a smaller/split archive.",
         )
         await notify_user(client, item, success=False, detail=reason)
-        return False
+        return "permanent"
 
     download_path = TEMP_DIR / f"queue_{index}_{file_name}"
     extract_dir   = TEMP_DIR / f"extracted_{index}"
@@ -192,7 +196,7 @@ async def process_item(client: Client, item: dict, index: int, total: int) -> bo
                 CHANNEL_ID, f"⚠️ `{file_name}` is empty — no files inside."
             )
             await notify_user(client, item, success=False, detail="Archive was empty")
-            return False
+            return "permanent"
 
         file_count = len(files)
 
@@ -260,21 +264,26 @@ async def process_item(client: Client, item: dict, index: int, total: int) -> bo
         )
 
         await notify_user(client, item, success=True)
-        return True
+        return "success"
 
     except (zipfile.BadZipFile, rarfile.BadRarFile) as exc:
         reason = "Invalid or corrupted archive"
-        await client.send_message(CHANNEL_ID, f"❌ `{file_name}` — {reason}")
+        await client.send_message(
+            CHANNEL_ID, f"❌ `{file_name}` — {reason}\nThis won't be retried."
+        )
         await notify_user(client, item, success=False, detail=reason)
         logger.error(f"{reason}: {file_name}")
-        return False
+        return "permanent"
 
     except Exception as exc:
         reason = str(exc)
-        await client.send_message(CHANNEL_ID, f"❌ Error processing `{file_name}`: `{reason}`")
-        await notify_user(client, item, success=False, detail=reason)
+        await client.send_message(
+            CHANNEL_ID,
+            f"⚠️ Error processing `{file_name}`: `{reason}`\nWill retry on the next run.",
+        )
+        await notify_user(client, item, success=False, detail=f"{reason} (will retry)")
         logger.exception(f"Unexpected error: {file_name}")
-        return False
+        return "retry"
 
     finally:
         download_path.unlink(missing_ok=True)
@@ -309,27 +318,50 @@ async def main() -> None:
             f"🕐 {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
         )
 
-        succeeded, failed_items = 0, []
+        succeeded, retry_items, dropped = 0, [], 0
 
         for idx, item in enumerate(queue, start=1):
-            ok = await process_item(client, item, idx, total)
-            if ok:
+            status = await process_item(client, item, idx, total)
+
+            if status == "success":
                 succeeded += 1
-            else:
-                failed_items.append(item)
+
+            elif status == "retry":
+                item["attempts"] = item.get("attempts", 0) + 1
+                if item["attempts"] >= MAX_RETRY_ATTEMPTS:
+                    dropped += 1
+                    await client.send_message(
+                        CHANNEL_ID,
+                        f"🚫 Giving up on `{item['file_name']}` after "
+                        f"{item['attempts']} failed attempts — dropping from queue.",
+                    )
+                    await notify_user(
+                        client, item, success=False,
+                        detail="Repeated failures — giving up after multiple attempts",
+                    )
+                else:
+                    retry_items.append(item)
+
+            else:  # "permanent"
+                dropped += 1
 
         # Final summary in channel
         await client.send_message(
             CHANNEL_ID,
             f"🏁 **Daily Release Complete**\n"
             f"• Processed: **{succeeded}/{total}**\n"
-            + (f"• Failed: **{len(failed_items)}** (kept in queue for next run)" if failed_items else "• All succeeded ✅"),
+            + (f"• Retrying next run: **{len(retry_items)}**\n" if retry_items else "")
+            + (f"• Dropped (unrecoverable): **{dropped}**\n" if dropped else "")
+            + ("• All succeeded ✅" if not retry_items and not dropped else ""),
         )
 
-    # Keep failed items in queue for next run; clear succeeded ones
-    state["queue"] = failed_items
+    # Keep only transient failures queued for the next run; drop the rest for good
+    state["queue"] = retry_items
     save_state(state)
-    logger.info(f"Release done. {succeeded} succeeded, {len(failed_items)} kept for retry.")
+    logger.info(
+        f"Release done. {succeeded} succeeded, {len(retry_items)} kept for retry, "
+        f"{dropped} dropped."
+    )
 
 
 if __name__ == "__main__":
