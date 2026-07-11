@@ -1,6 +1,17 @@
 {
-  "update_offset": 118588620,
-  "queue": [],
+  "update_offset": 118588628,
+  "queue": [
+    {
+      "file_id": "BQACAgUAAyEFAATnzicsAAIDqGpPnLNgK8FZr0dLgwjGbpWEwYDoAAIiJAAC-qJBVlwFibvnX0QmPAQ",
+      "file_unique_id": "AgADIiQAAvqiQVY",
+      "file_name": "Arthi (1).zip",
+      "file_size": 403759830,
+      "from_user": "unknown",
+      "from_user_id": null,
+      "chat_id": -1003889047340,
+      "queued_at": "2026-07-09T14:33:25.130596+00:00"
+    }
+  ],
   "processed": [],
   "last_message_id": 0
 }
