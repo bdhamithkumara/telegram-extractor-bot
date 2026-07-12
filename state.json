@@ -1,17 +1,6 @@
 {
   "update_offset": 118588629,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIDv2pST2mYSD9tH9yQF2BHZSSyFY-tAAIZJgACX0o5VqIHLJkkTuc5PAQ",
-      "file_unique_id": "AgADGSYAAl9KOVY",
-      "file_name": "eygx_MmsDose__Priyjsvdsi_1 (1).zip",
-      "file_size": 37568587,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-07-11T14:19:39.714435+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
