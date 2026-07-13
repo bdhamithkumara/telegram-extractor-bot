@@ -1,17 +1,6 @@
 {
   "update_offset": 118588630,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAID9mpTvo7ZxyrK0mvJ8LByQP536eiUAAIXJgACX0o5VprfQwp5yUW5PAQ",
-      "file_unique_id": "AgADFyYAAl9KOVY",
-      "file_name": "dgdq_MmsHUNT__BeautifulTiktoker (1).zip",
-      "file_size": 204912539,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-07-12T16:47:06.079234+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
