@@ -1,17 +1,6 @@
 {
   "update_offset": 118588680,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIElWph-FpEzMbir_hOHYGIG5FtRyiJAAKIJQACX0o5Vs2mz_y-6MnkPQQ",
-      "file_unique_id": "AgADiCUAAl9KOVY",
-      "file_name": "jkgf_MmsDose.org_VideoosCg (1).zip",
-      "file_size": 39624403,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-07-23T12:08:28.405277+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
