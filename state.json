@@ -1,6 +1,17 @@
 {
-  "update_offset": 118588680,
-  "queue": [],
+  "update_offset": 118588681,
+  "queue": [
+    {
+      "file_id": "BQACAgUAAyEFAATnzicsAAIEnGpmJ6teyzS9Or83rwcUotc6gM6aAAKGJQACX0o5Vk1uMZlapdLuPQQ",
+      "file_unique_id": "AgADhiUAAl9KOVY",
+      "file_name": "fahi_MmsDose__5_6309906114351729880 (1).zip",
+      "file_size": 52010164,
+      "from_user": "unknown",
+      "from_user_id": null,
+      "chat_id": -1003889047340,
+      "queued_at": "2026-07-26T15:36:06.561717+00:00"
+    }
+  ],
   "processed": [],
   "last_message_id": 0
 }
