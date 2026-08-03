@@ -1,6 +1,17 @@
 {
-  "update_offset": 118588681,
-  "queue": [],
+  "update_offset": 118588682,
+  "queue": [
+    {
+      "file_id": "BQACAgUAAyEFAATnzicsAAIErmpwuqr1cFq9DQU3xfR0E4OB5ObnAAKEJQACX0o5ViGlfVq2LYbePQQ",
+      "file_unique_id": "AgADhCUAAl9KOVY",
+      "file_name": "SlM0delH0m8VidsPart02 (1).zip",
+      "file_size": 54162673,
+      "from_user": "unknown",
+      "from_user_id": null,
+      "chat_id": -1003889047340,
+      "queued_at": "2026-08-03T16:44:22.659325+00:00"
+    }
+  ],
   "processed": [],
   "last_message_id": 0
 }
