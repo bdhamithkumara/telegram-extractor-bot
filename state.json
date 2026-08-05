@@ -1,17 +1,6 @@
 {
   "update_offset": 118588701,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIFYmpyncunKtnasLrX06rNF40USJZyAAKCJQACX0o5VtBUWbGyWkZXPQQ",
-      "file_unique_id": "AgADgiUAAl9KOVY",
-      "file_name": "yjid_MmsDose__cousin (1).zip",
-      "file_size": 56394426,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-08-05T04:56:23.099402+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
