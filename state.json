@@ -1,17 +1,6 @@
 {
   "update_offset": 118588722,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIFaGpzVZFBdIacsc8KZxI0R8fbQhuTAAKBJQACX0o5VhvUlXKGOBF-PQQ",
-      "file_unique_id": "AgADgSUAAl9KOVY",
-      "file_name": "vyxc_MmsDose__Sltiktokgl16Vidspart02 (1).zip",
-      "file_size": 72771457,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-08-05T16:26:10.625793+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
