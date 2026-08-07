@@ -1,6 +1,17 @@
 {
-  "update_offset": 118588722,
-  "queue": [],
+  "update_offset": 118588723,
+  "queue": [
+    {
+      "file_id": "BQACAgUAAyEFAATnzicsAAIFnWp2EBR8_1IHuvFx3SNve2dLvGIFAAKAJQACX0o5Vu5oyZpMM-uePQQ",
+      "file_unique_id": "AgADgCUAAl9KOVY",
+      "file_name": "ofgb_MmsDose__LankanTiktoker (1).zip",
+      "file_size": 9282746,
+      "from_user": "unknown",
+      "from_user_id": null,
+      "chat_id": -1003889047340,
+      "queued_at": "2026-08-07T17:40:31.103936+00:00"
+    }
+  ],
   "processed": [],
   "last_message_id": 0
 }
