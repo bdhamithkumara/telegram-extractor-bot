@@ -1,6 +1,17 @@
 {
-  "update_offset": 118588723,
-  "queue": [],
+  "update_offset": 118588724,
+  "queue": [
+    {
+      "file_id": "BQACAgUAAyEFAATnzicsAAIFwGp3NoRwHGWfxoJ3BHJSxcDgy6dlAAJ_JQACX0o5VrHeSkQ4MfZbPQQ",
+      "file_unique_id": "AgADfyUAAl9KOVY",
+      "file_name": "wqyf_MmsDose__booby (1).zip",
+      "file_size": 65377651,
+      "from_user": "unknown",
+      "from_user_id": null,
+      "chat_id": -1003889047340,
+      "queued_at": "2026-08-08T14:04:38.770022+00:00"
+    }
+  ],
   "processed": [],
   "last_message_id": 0
 }
