@@ -1,17 +1,6 @@
 {
   "update_offset": 118588725,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIF9Wp4oumx-an55cTyx0bRCmNO4BAfAAJ-JQACX0o5Vs7nVGDD0B2pPQQ",
-      "file_unique_id": "AgADfiUAAl9KOVY",
-      "file_name": "xldg_MmsDose__TikToker (1).zip",
-      "file_size": 123338707,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-08-09T16:22:15.166961+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
