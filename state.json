@@ -1,17 +1,6 @@
 {
   "update_offset": 118588763,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIGRmqO5clk4oH24g0q_B3K4KGgE7OyAAKVIwACGcRpVCG1Sc6pPNtIPQQ",
-      "file_unique_id": "AgADlSMAAhnEaVQ",
-      "file_name": "SLGFUpdate.zip",
-      "file_size": 27748449,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-08-28T23:17:42.907990+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
