@@ -1,17 +1,6 @@
 {
   "update_offset": 118588764,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIHB2qW99cBx-3SkcCf85bupc9E4QoEAAKUIwACGcRpVOI52P6yi-Z-PQQ",
-      "file_unique_id": "AgADlCMAAhnEaVQ",
-      "file_name": "Mahishii.zip",
-      "file_size": 9961369,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-09-01T18:15:41.085650+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
