@@ -1,6 +1,17 @@
 {
-  "update_offset": 118588764,
-  "queue": [],
+  "update_offset": 118588765,
+  "queue": [
+    {
+      "file_id": "BQACAgUAAyEFAATnzicsAAIHG2qa15IoFZNYb7N9M3yWkkDJzGu0AAKTIwACGcRpVDHo5tI_iW53PQQ",
+      "file_unique_id": "AgADkyMAAhnEaVQ",
+      "file_name": "Old sl gf.zip",
+      "file_size": 53176682,
+      "from_user": "unknown",
+      "from_user_id": null,
+      "chat_id": -1003889047340,
+      "queued_at": "2026-09-04T16:30:00.897129+00:00"
+    }
+  ],
   "processed": [],
   "last_message_id": 0
 }
