@@ -1,6 +1,17 @@
 {
-  "update_offset": 118588765,
-  "queue": [],
+  "update_offset": 118588766,
+  "queue": [
+    {
+      "file_id": "BQACAgUAAyEFAATnzicsAAIHI2qcVKqFMbLYZvNx7zLf8xdcrh1LAAKLIwACGcRpVIm7P0dg8NwBPQQ",
+      "file_unique_id": "AgADiyMAAhnEaVQ",
+      "file_name": "SouthMmalluWlFull.zip",
+      "file_size": 157784651,
+      "from_user": "unknown",
+      "from_user_id": null,
+      "chat_id": -1003889047340,
+      "queued_at": "2026-09-05T18:27:38.709976+00:00"
+    }
+  ],
   "processed": [],
   "last_message_id": 0
 }
