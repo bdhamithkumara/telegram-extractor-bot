@@ -1,17 +1,6 @@
 {
   "update_offset": 118588767,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIHimqe0vESu0o88HMs7EukkQZkzfhAAAKQIwACGcRpVAP2HJwoqrxyPQQ",
-      "file_unique_id": "AgADkCMAAhnEaVQ",
-      "file_name": "bssjff.zip",
-      "file_size": 26841940,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-09-07T16:12:10.879209+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
