@@ -1,17 +1,6 @@
 {
   "update_offset": 118588768,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIHk2qgNT17BZSMpzQi4PBCGS5rrikHAAKOIwACGcRpVAi-HwGcFbUEPQQ",
-      "file_unique_id": "AgADjiMAAhnEaVQ",
-      "file_name": "SxySubG.zip",
-      "file_size": 25102507,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-09-08T17:57:36.933921+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
