@@ -1,17 +1,6 @@
 {
   "update_offset": 118588857,
-  "queue": [
-    {
-      "file_id": "BQACAgUAAyEFAATnzicsAAIJI2qpXXioyEb7JXNyYdNEiOvcYVxBAAJWJQACX0o5VlzZ9pmY6EoHPQQ",
-      "file_unique_id": "AgADViUAAl9KOVY",
-      "file_name": "UpdateNiha (1).zip",
-      "file_size": 81467729,
-      "from_user": "unknown",
-      "from_user_id": null,
-      "chat_id": -1003889047340,
-      "queued_at": "2026-09-15T15:59:13.371821+00:00"
-    }
-  ],
+  "queue": [],
   "processed": [],
   "last_message_id": 0
 }
