@@ -1,6 +1,17 @@
 {
-  "update_offset": 118588895,
-  "queue": [],
+  "update_offset": 118588902,
+  "queue": [
+    {
+      "file_id": "BQACAgUAAyEFAATnzicsAAIJVmrGCPsnRXQz933TKq1yLSCrYk-CAAKcJwACoxQxVjJovaMzQxIvPQQ",
+      "file_unique_id": "AgADnCcAAqMUMVY",
+      "file_name": "2026.10.07.zip",
+      "file_size": 45960593,
+      "from_user": "unknown",
+      "from_user_id": null,
+      "chat_id": -1003889047340,
+      "queued_at": "2026-10-07T09:32:08.073060+00:00"
+    }
+  ],
   "processed": [],
   "last_message_id": 0
 }
